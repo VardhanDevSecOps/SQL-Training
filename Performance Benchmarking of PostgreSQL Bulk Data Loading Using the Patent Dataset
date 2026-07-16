@@ -393,9 +393,22 @@ WHERE publication_number='US-4081864-A';
 | Index Size | 690 MB | 533 MB |
 | Exact Lookup | 17.6 sec | 8.16 sec |
 
-## Screenshot
+| Benchmark                                          | Scenario 1 (Index Before Load) | Scenario 2 (COPY Before Index)        |              Difference | Observation                                                                                                                   |
+| -------------------------------------------------- | -----------------------------: | ------------------------------------: | ----------------------: | ----------------------------------------------------------------------------------------------------------------------------- |
+| Table Creation                                     |                      39.758 ms |                             42.297 ms |                 +2.5 ms | Negligible difference.                                                                                                        |
+| Bulk Load (9,458,171 rows)                         |       **260.594 sec (4m 20s)** |              **129.998 sec (2m 10s)** |        **50.1% Faster** | Loading into a table without indexes is significantly faster because PostgreSQL does not maintain index pages during inserts. |
+| Rows Loaded                                        |                      9,458,171 |                             9,458,171 |                    Same | Dataset identical.                                                                                                            |
+| Table Size                                         |                        8393 MB |                               8393 MB |                    Same | Data storage unchanged.                                                                                                       |
+| Index Size                                         |                         690 MB |                                533 MB |      **157 MB smaller** | Index built after loading produced a more compact B-tree with fewer page splits and lower fragmentation.                      |
+| MD5 Index Creation                                 |                Already existed |                            40.634 sec |                     N/A | Creating the index after bulk loading is efficient and recommended for ETL workflows.                                         |
+| Exact Lookup (`publication_number='US-4081864-A'`) |                      17.60 sec |                          **8.16 sec** |        **53.6% Faster** | Both use Parallel Sequential Scan; Scenario 2 benefits from better data organization and caching.                             |
+| Prefix Search (`LIKE 'US-40818%'`)                 |                   **7.26 sec** |                              7.47 sec | Slightly slower (+2.9%) | Difference is negligible; no index exists on `publication_number`, so both perform full table scans.                          |
+| Title Search (`ILIKE '%helmet%'`)                  |                   **7.39 sec** |                              8.20 sec |                  +10.9% | Similar execution plan (Parallel Seq Scan); runtime variation is likely due to cache or system state.                         |
+| Abstract Search (`ILIKE '%water%'`)                |                     Not Tested |                         **21.70 sec** |                     N/A | Large result set (361,777 rows) requires scanning the entire table.                                                           |
+| Query Plan                                         |              Parallel Seq Scan |                     Parallel Seq Scan |                    Same | No search-specific indexes available in either scenario.                                                                      |
+| Parallel Workers                                   |                              2 |                                     2 |                    Same | Parallel execution unchanged.                                                                                                 |
+| Access Method                                      |                           Heap |                                  Heap |                    Same | Same storage engine.                                                                                                          |
 
-![Final Comparison](screenshots/15-final-comparison.png)
 
 ---
 
