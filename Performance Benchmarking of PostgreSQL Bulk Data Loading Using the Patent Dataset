@@ -1,0 +1,421 @@
+# PostgreSQL Performance Benchmarking using Patent Dataset
+
+## Overview
+
+This project benchmarks PostgreSQL performance using a **9.45 million record Patent Dataset**.
+
+The benchmark evaluates:
+
+- Bulk Data Loading Performance
+- LOGGED vs UNLOGGED Tables
+- Partitioned Tables
+- Query Performance
+- Storage Usage
+- Index Creation Strategies
+- EXPLAIN ANALYZE Results
+
+---
+
+# Environment
+
+| Component | Details |
+|-----------|----------|
+| OS | Ubuntu 22.04 Docker |
+| PostgreSQL | 14.23 |
+| Database | PostgreSQL |
+| Schema | patents |
+| Dataset | Patent Dataset |
+| Records | 9,458,171 |
+
+---
+
+# Project Structure
+
+```
+postgresql-benchmark/
+│
+├── README.md
+├── sql/
+│   ├── logged.sql
+│   ├── unlogged.sql
+│   ├── partition.sql
+│   ├── indexes.sql
+│   └── benchmark_queries.sql
+│
+├── screenshots/
+│   ├── 01-environment.png
+│   ├── 02-schema.png
+│   ├── 03-count.png
+│   ├── 04-logged-load.png
+│   ├── 05-unlogged-load.png
+│   ├── 06-storage.png
+│   ├── 07-query1.png
+│   ├── 08-query2.png
+│   ├── 09-query3.png
+│   ├── 10-query4.png
+│   ├── 11-partition-create.png
+│   ├── 12-partition-query.png
+│   ├── 13-index-before-load.png
+│   ├── 14-index-after-load.png
+│   ├── 15-final-comparison.png
+│
+└── dataset/
+```
+
+---
+
+# Dataset Information
+
+| Item | Value |
+|------|-------|
+| Dataset | Patent Dataset |
+| Total Records | 9,458,171 |
+| Main Table | patents.all_patents |
+
+---
+
+# Verify PostgreSQL Environment
+
+```sql
+docker ps
+
+docker exec -it patent-db bash
+
+su postgres
+
+psql
+
+\l
+
+\dn
+
+SELECT COUNT(*) FROM patents.all_patents;
+
+SELECT pg_size_pretty(
+pg_total_relation_size('patents.all_patents')
+);
+```
+
+## Screenshot
+
+![Environment](screenshots/01-environment.png)
+
+---
+
+# Data Validation
+
+Performed validations:
+
+- Verified row count
+- Verified schema
+- Verified constraints
+- Verified successful import
+- Verified no missing records
+
+## Screenshot
+
+![Validation](screenshots/02-schema.png)
+
+![Row Count](screenshots/03-count.png)
+
+---
+
+# Milestone 1
+
+# LOGGED Table
+
+## Create Table
+
+```sql
+CREATE TABLE patents.logged_patents(
+publication_number text,
+title text,
+abstract text
+);
+```
+
+## Load Data
+
+```sql
+\timing
+
+\copy patents.logged_patents
+FROM '/tmp/all_patents.csv'
+CSV HEADER;
+```
+
+## Screenshot
+
+![Logged Load](screenshots/04-logged-load.png)
+
+---
+
+# Query Performance (LOGGED)
+
+## Primary Key Lookup
+
+```sql
+EXPLAIN (ANALYZE,BUFFERS)
+
+SELECT *
+FROM patents.logged_patents
+WHERE publication_number='US-4081864-A';
+```
+
+![Query1](screenshots/07-query1.png)
+
+---
+
+## Prefix Search
+
+```sql
+EXPLAIN (ANALYZE,BUFFERS)
+
+SELECT *
+FROM patents.logged_patents
+WHERE publication_number LIKE 'US-40818%';
+```
+
+![Query2](screenshots/08-query2.png)
+
+---
+
+## Title Search
+
+```sql
+EXPLAIN (ANALYZE,BUFFERS)
+
+SELECT *
+FROM patents.logged_patents
+WHERE title ILIKE '%helmet%';
+```
+
+![Query3](screenshots/09-query3.png)
+
+---
+
+# UNLOGGED Table
+
+## Create Table
+
+```sql
+CREATE UNLOGGED TABLE patents.unlogged_patents(
+publication_number text,
+title text,
+abstract text
+);
+```
+
+## Load Data
+
+```sql
+\copy patents.unlogged_patents
+FROM '/tmp/all_patents.csv'
+CSV HEADER;
+```
+
+## Screenshot
+
+![Unlogged Load](screenshots/05-unlogged-load.png)
+
+---
+
+# Query Performance (UNLOGGED)
+
+## Primary Key Lookup
+
+```sql
+EXPLAIN (ANALYZE,BUFFERS)
+
+SELECT *
+FROM patents.unlogged_patents
+WHERE publication_number='US-4081864-A';
+```
+
+---
+
+## Prefix Search
+
+```sql
+EXPLAIN (ANALYZE,BUFFERS)
+
+SELECT *
+FROM patents.unlogged_patents
+WHERE publication_number LIKE 'US-40818%';
+```
+
+---
+
+## Title Search
+
+```sql
+EXPLAIN (ANALYZE,BUFFERS)
+
+SELECT *
+FROM patents.unlogged_patents
+WHERE title ILIKE '%helmet%';
+```
+
+---
+
+## Abstract Search
+
+```sql
+EXPLAIN (ANALYZE,BUFFERS)
+
+SELECT publication_number,title
+FROM patents.unlogged_patents
+WHERE abstract ILIKE '%water%';
+```
+
+![Query4](screenshots/10-query4.png)
+
+---
+
+# Bulk Import Comparison
+
+| Metric | Logged | Unlogged |
+|---------|---------|-----------|
+| Rows | 9,458,171 | 9,458,171 |
+| Import Time | 77.335 sec | 64.387 sec |
+| Improvement | — | **12.948 sec Faster** |
+
+---
+
+# Storage Comparison
+
+| Metric | Logged | Unlogged |
+|---------|----------|-----------|
+| Table Size | 8398 MB | 8393 MB |
+| Index Size | 0 | 0 |
+
+## Screenshot
+
+![Storage](screenshots/06-storage.png)
+
+---
+
+# Query Performance Comparison
+
+| Test | Logged | Unlogged |
+|------|---------|-----------|
+| PK Lookup | 7605 ms | 7151 ms |
+| Prefix Search | 7507 ms | 7337 ms |
+| Title Search | 7478 ms | 7982 ms |
+| Abstract Search | 24219 ms | 22750 ms |
+
+---
+
+# Milestone 2
+
+# Hash Partitioning
+
+## Parent Table
+
+```sql
+CREATE TABLE patents_partitioned(...)
+PARTITION BY HASH(publication_number);
+```
+
+## Create Partitions
+
+```sql
+CREATE TABLE patents_partition_0 PARTITION OF ...
+CREATE TABLE patents_partition_1 PARTITION OF ...
+CREATE TABLE patents_partition_2 PARTITION OF ...
+CREATE TABLE patents_partition_3 PARTITION OF ...
+```
+
+## Screenshot
+
+![Partition Create](screenshots/11-partition-create.png)
+
+---
+
+# Load Data
+
+```sql
+COPY patents.patents_partitioned
+FROM '/tmp/all_patents.csv'
+CSV HEADER;
+```
+
+---
+
+# Query Performance
+
+```sql
+EXPLAIN ANALYZE
+SELECT *
+FROM patents.patents_partitioned
+WHERE publication_number='US-4081864-A';
+```
+
+## Screenshot
+
+![Partition Query](screenshots/12-partition-query.png)
+
+---
+
+# Milestone 3
+
+# Index Before Loading
+
+- Create Table
+- Create MD5 Index
+- Bulk Load
+
+## Screenshot
+
+![Index Before Load](screenshots/13-index-before-load.png)
+
+---
+
+# Milestone 4
+
+# Load First → Create Index Later
+
+- Bulk Load
+- Create MD5 Index
+
+## Screenshot
+
+![Index After Load](screenshots/14-index-after-load.png)
+
+---
+
+# Final Benchmark Comparison
+
+| Benchmark | Index Before Load | Load then Index |
+|------------|------------------|-----------------|
+| Bulk Load | 260 sec | 129 sec |
+| Improvement | — | **50% Faster** |
+| Index Size | 690 MB | 533 MB |
+| Exact Lookup | 17.6 sec | 8.16 sec |
+
+## Screenshot
+
+![Final Comparison](screenshots/15-final-comparison.png)
+
+---
+
+# Conclusions
+
+- UNLOGGED tables significantly reduce bulk loading time.
+- Loading data before creating indexes improves ETL performance by approximately 50%.
+- Hash partitioning helps equality lookups through partition pruning.
+- Prefix and text searches still require sequential scans without dedicated indexes.
+- Building indexes after bulk loading creates more compact B-tree indexes and reduces fragmentation.
+
+---
+
+# Technologies
+
+- PostgreSQL 14
+- Docker
+- Ubuntu 22.04
+- SQL
+- EXPLAIN ANALYZE
+- Hash Partitioning
+- WAL
+- Bulk Loading
