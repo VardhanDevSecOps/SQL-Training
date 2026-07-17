@@ -1,4 +1,4 @@
-**Day 2 – SQL Data Exploration & Transformation Challenge**
+**Day 2 – SQL Data Exploration & Transformation Challenge** 
 
 **Check your table structure**
 
