@@ -350,11 +350,11 @@ LIMIT 50;
 
 **Concepts Covered**
 
-regexp_split_to_table()
-Regular Expressions
-Common Table Expressions (CTEs)
-Aggregation
-Window Functions
+regexp_split_to_table() |
+Regular Expressions |
+Common Table Expressions (CTEs) |
+Aggregation |
+Window Functions |
 DENSE_RANK()
 
 <img width="675" height="1039" alt="View Top words" src="https://github.com/user-attachments/assets/5cfdedbc-86e7-462a-9534-86be5192ea5d" />
