@@ -1,4 +1,4 @@
-<img width="1652" height="685" alt="Example 1" src="https://github.com/user-attachments/assets/b2b39729-5fed-47b6-8637-5c890f13ffd5" /><img width="568" height="113" alt="Analyze Update statistics" src="https://github.com/user-attachments/assets/f8468409-9eac-4837-ace2-f8b93b18bd30" /><img width="568" height="113" alt="Analyze Update statistics" src="https://github.com/user-attachments/assets/ce73b716-b547-46e1-a9c2-d7edb2588b85" /><img width="745" height="296" alt="unctional GIN Index on Title" src="https://github.com/user-attachments/assets/93073fb6-dc8a-421d-8eb8-4e027e070a48" /><img width="535" height="653" alt=" Patent Trend Analysi" src="https://github.com/user-attachments/assets/f87baf30-7bc2-4358-80c0-c0748c704ede" /><img width="870" height="517" alt="Patent Coverage Analysis" src="https://github.com/user-attachments/assets/9c9c99b1-1927-427c-ac58-f105158cc977" />
+
 **Check your table structure**
 
 1. First see the available columns.
