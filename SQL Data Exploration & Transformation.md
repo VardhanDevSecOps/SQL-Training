@@ -1,7 +1,7 @@
-<img width="617" height="190" alt="Insert Unique Inventors" src="https://github.com/user-attachments/assets/201d2a6c-d51f-4641-851a-9e739a5d9258" /><img width="617" height="190" alt="Insert Unique Inventors" src="https://github.com/user-attachments/assets/f6809d28-a1fc-4178-b089-16f0d82de886" />
+<img width="1652" height="685" alt="Example 1" src="https://github.com/user-attachments/assets/b2b39729-5fed-47b6-8637-5c890f13ffd5" /><img width="568" height="113" alt="Analyze Update statistics" src="https://github.com/user-attachments/assets/f8468409-9eac-4837-ace2-f8b93b18bd30" /><img width="568" height="113" alt="Analyze Update statistics" src="https://github.com/user-attachments/assets/ce73b716-b547-46e1-a9c2-d7edb2588b85" /><img width="745" height="296" alt="unctional GIN Index on Title" src="https://github.com/user-attachments/assets/93073fb6-dc8a-421d-8eb8-4e027e070a48" /><img width="535" height="653" alt=" Patent Trend Analysi" src="https://github.com/user-attachments/assets/f87baf30-7bc2-4358-80c0-c0748c704ede" /><img width="870" height="517" alt="Patent Coverage Analysis" src="https://github.com/user-attachments/assets/9c9c99b1-1927-427c-ac58-f105158cc977" />
 **Check your table structure**
 
-First see the available columns.
+1. First see the available columns.
 ```
 \d patents.all_patents
 ```
@@ -217,7 +217,7 @@ ARRAY[
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-**Task 1 – Create Inventor Master** 
+**2 – Create Inventor Master** 
 
 Purpose
 
@@ -238,7 +238,7 @@ CREATE TABLE patents.inventor_master
 <img width="586" height="245" alt="Inventor Master" src="https://github.com/user-attachments/assets/0a1e93d0-c3c1-4b0c-8698-453741e7c33b" />
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 
-**Insert Unique Inventors**
+**3. Insert Unique Inventors**
 
 ```
 INSERT INTO patents.inventor_master(inventor_name)
@@ -265,12 +265,378 @@ Although UNIQUE already creates an index, you can create another only if searchi
 CREATE INDEX idx_inventor_name
 ON patents.inventor_master(inventor_name);
 ```
+Index created
+
 <img width="493" height="122" alt="Index Created" src="https://github.com/user-attachments/assets/944b5149-3356-4064-b8a0-ab5fbe9bcda1" />
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 
+**4 – Patent Title Analysis**
+```
+Create table
+CREATE TABLE patents.title_word_frequency
+(
+    word TEXT PRIMARY KEY,
+    frequency BIGINT,
+    rank INT
+);
+```
+**Table created**
 
+<img width="653" height="221" alt="Table created" src="https://github.com/user-attachments/assets/8f97b423-021e-4096-ba14-2111c66d315d" />
 
+**Extract words**
 
+**PostgreSQL regular expression:**
+```
+regexp_split_to_table(lower(title), '[^a-z0-9]+')
+```
+splits using
+
+• spaces
+• commas
+• hyphens
+• slashes
+• brackets
+• punctuation
+• Insert Top 100 words
+
+**Insert Top 100 words**
+```
+INSERT INTO patents.title_word_frequency(word, frequency, rank)
+
+WITH words AS
+(
+    SELECT
+        regexp_split_to_table(lower(title), '[^a-z0-9]+') AS word
+    FROM patents.patents_training
+),
+
+filtered AS
+(
+    SELECT word
+    FROM words
+    WHERE length(word) > 3
+),
+
+freq AS
+(
+    SELECT
+        word,
+        COUNT(*) AS frequency
+    FROM filtered
+    GROUP BY word
+)
+
+SELECT
+    word,
+    frequency,
+    DENSE_RANK() OVER
+    (
+        ORDER BY frequency DESC
+    ) AS rank
+FROM freq
+ORDER BY frequency DESC
+LIMIT 100;
+```
+
+View Top Words
+```
+SELECT *
+FROM patents.title_word_frequency
+ORDER BY rank
+LIMIT 50;
+```
+
+**Concepts Covered**
+
+regexp_split_to_table()
+Regular Expressions
+Common Table Expressions (CTEs)
+Aggregation
+Window Functions
+DENSE_RANK()
+
+<img width="675" height="1039" alt="View Top words" src="https://github.com/user-attachments/assets/5cfdedbc-86e7-462a-9534-86be5192ea5d" />
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+**5 - Patent Coverage Analysis**
+
+Find patents whose titles do not contain any of the Top 100 frequent words.
+```
+SELECT *
+
+FROM patents.patents_training p
+
+WHERE NOT EXISTS
+(
+    SELECT 1
+
+    FROM patents.title_word_frequency t
+
+    WHERE lower(p.title) ~
+
+    ('(^|[^a-z0-9])' ||
+
+     t.word ||
+
+     '([^a-z0-9]|$)')
+);
+```
+
+```
+Explanation
+
+For every patent
+
+↓
+
+Check Top100 words
+
+↓
+
+If one matches
+
+↓
+
+Reject
+
+↓
+
+Otherwise
+
+↓
+
+Return patent
+```
+
+Alternative (more accurate)
+
+Split title into words and compare word-by-word instead of LIKE.
+
+**Screenshot**
+
+<img width="870" height="517" alt="Patent Coverage Analysis" src="https://github.com/user-attachments/assets/e6f3def9-b50a-4ddb-9b77-00dd0286737a" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+**6 - Patent Trend Analysis**
+
+Analyze publication trends over the years.
+
+Annual Patent Count
+```
+SELECT
+
+    EXTRACT(YEAR FROM publication_date)::INT AS year,
+
+    COUNT(*) AS patent_count
+
+FROM patents.patents_training
+
+GROUP BY year
+
+ORDER BY patent_count DESC
+
+LIMIT 10;
+```
+<img width="535" height="653" alt=" Patent Trend Analysi" src="https://github.com/user-attachments/assets/57ca3ca6-8ce2-4a86-9db5-c3e3b1901e3d" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+**Most Recent Patent Publication Year**
+```
+SELECT
+
+    EXTRACT(YEAR FROM publication_date)::INT AS year,
+
+    COUNT(*) AS patent_count
+
+FROM patents.patents_training
+
+GROUP BY year
+
+ORDER BY patent_count DESC
+
+LIMIT 1;
+```
+<img width="562" height="462" alt="Most Recent Patent" src="https://github.com/user-attachments/assets/d765bb8c-5c50-464e-933f-79cf25cc8323" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+**Year-over-Year Performance Analysis Using SQL**
+```
+WITH yearly
+AS
+(
+    SELECT
+
+        EXTRACT(YEAR FROM publication_date)::INT AS year,
+
+        COUNT(*) AS patent_count
+
+    FROM patents.patents_training
+
+    GROUP BY year
+)
+
+SELECT
+
+    year,
+
+    patent_count,
+
+    LAG(patent_count)
+
+    OVER (ORDER BY year)
+
+    AS previous_year,
+
+    ROUND
+    (
+
+        (
+
+            patent_count -
+
+            LAG(patent_count)
+
+            OVER (ORDER BY year)
+
+        )
+
+        *100.0
+
+        /
+
+        NULLIF
+
+        (
+
+            LAG(patent_count)
+
+            OVER (ORDER BY year),
+
+            0
+
+        ),
+
+        2
+
+    ) AS growth_percentage
+
+FROM yearly
+
+ORDER BY year;
+```
+**Core Concepts:**
+LAG(), Window Functions, Growth Percentage Calculation, NULLIF, Common Table Expressions (CTEs)
+
+<img width="933" height="1042" alt="Year-over-Year" src="https://github.com/user-attachments/assets/bdb87245-2138-40ff-8c32-1151d6399533" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+**7 - Performance Optimization**
+
+Index on Publication Date
+```
+CREATE INDEX idx_patent_date
+ON patents.patents_training(publication_date);
+```
+Purpose
+Makes filtering by publication date more effective.
+
+**Screenshot**
+
+<img width="675" height="143" alt="Index Publication date" src="https://github.com/user-attachments/assets/51546f3b-9943-44de-80d0-8b2439a5b93e" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+**Functional GIN Index on Title**
+
+```
+CREATE INDEX idx_lower_title
+
+ON patents.patents_training
+
+USING gin
+
+(
+    to_tsvector('simple', lower(title))
+);
+```
+
+Purpose
+Enhances full-text search performance for patent titles.
+
+**Screenshot**
+
+<img width="745" height="296" alt="Functional GIN Index on Title" src="https://github.com/user-attachments/assets/7f46a4e6-274e-43d2-b052-9c314b7187a4" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+**Update Statistics**
+
+ANALYZE patents.patents_training;
+
+Purpose
+Update planner statistics for improved execution plans.
+
+<img width="568" height="113" alt="Analyze Update statistics" src="https://github.com/user-attachments/assets/8647165e-6ebc-46ab-abae-3d029a5073ab" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+ **8- Query Performance Benchmarking**
+
+Use EXPLAIN ANALYZE to compare execution plans.
+
+**Example 1**
+```
+EXPLAIN ANALYZE
+
+SELECT
+
+    EXTRACT(YEAR FROM publication_date),
+
+    COUNT(*)
+
+FROM patents.patents_training
+
+GROUP BY 1;
+```
+<img width="1652" height="685" alt="Example 1" src="https://github.com/user-attachments/assets/acebf317-c317-4325-bf57-93d1cf1b48e2" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+**Example 2**
+```
+EXPLAIN ANALYZE
+
+SELECT *
+FROM patents.patents_training
+WHERE publication_date >= DATE '2020-01-01';
+```
+<img width="1341" height="429" alt="Example 2" src="https://github.com/user-attachments/assets/1cc383cb-ec9d-45f1-8921-2e25178ae2a4" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+**Example 3**
+```
+EXPLAIN ANALYZE
+
+SELECT *
+
+FROM patents.patents_training
+
+WHERE publication_date
+BETWEEN '2020-01-01'
+AND '2020-12-31';
+```
+<img width="1366" height="536" alt="Example 3" src="https://github.com/user-attachments/assets/e9ad95dc-df43-4428-818b-58208a284b86" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+Example 4
+```
+EXPLAIN ANALYZE
+
+SELECT *
+FROM patents.patents_training
+WHERE title LIKE '%battery%';
+```
+<img width="1317" height="500" alt="Example 4" src="https://github.com/user-attachments/assets/088fdf7a-5966-4330-9e47-eb6e18bd107f" />
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
