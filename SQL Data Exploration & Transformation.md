@@ -28,7 +28,7 @@ CREATE TABLE patents.patents_training
 
 <img width="657" height="272" alt="Table creation" src="https://github.com/user-attachments/assets/2ec1c5b3-571b-4663-9cfe-adc3c000822f" />
 
-------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------
 
 This SQL script generates and inserts **1,000,000 synthetic patent records** into the `patents.patents_training` table.
 
