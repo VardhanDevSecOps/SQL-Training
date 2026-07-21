@@ -1,4 +1,4 @@
-<img width="1611" height="1034" alt="Screenshot 2026-07-21 at 9 40 30 PM" src="https://github.com/user-attachments/assets/aa7fd54a-3f9a-4082-9e55-4656b5ba6a7d" /><img width="1611" height="1034" alt="Screenshot 2026-07-21 at 9 40 30 PM" src="https://github.com/user-attachments/assets/3695e5f5-baf5-4a9a-bf61-3d2d66ab41a8" /># Day 3 – Complex Data Representation & Analysis Objective
+# Day 3 – Complex Data Representation & Analysis Objective
 
 ### The objective of this exercise is to explore PostgreSQL's advanced data representation capabilities by storing and querying complex relationships using ARRAY and JSONB data types.
 
