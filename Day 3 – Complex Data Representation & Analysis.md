@@ -483,7 +483,8 @@ WHERE 'Inventor_09915'=ANY(inventors);
 ```
 <img width="1127" height="1042" alt="20 - ARRAY Functions_Check Whether an Inventor Exists" src="https://github.com/user-attachments/assets/ca175c3c-f7b6-4f61-bf62-45c1c6f5d1dc" />
 
-7. Check whether a key exists
+------------------------------------------------------------------------------------------------------------------------------------------
+### 7. Check whether a key exists
  
 SELECT *
 FROM patent_metadata
@@ -492,9 +493,7 @@ WHERE metadata ? 'technology';
 <img width="1611" height="1034" alt="Screenshot 2026-07-21 at 9 40 30 PM" src="https://github.com/user-attachments/assets/5d6ed319-9473-412e-a9e6-ff9da3f820ef" />
 
 ------------------------------------------------------------------------------------------------------------------------------------------
- 
- 
-8. Check multiple keys
+### 8. Check multiple keys
  
 SELECT *
 FROM patent_metadata
@@ -503,7 +502,7 @@ WHERE metadata ?& ARRAY['country','technology'];
 <img width="1358" height="948" alt="Screenshot 2026-07-21 at 9 41 18 PM" src="https://github.com/user-attachments/assets/9636df48-8673-4582-b192-303526908139" />
 
 ------------------------------------------------------------------------------------------------------------------------------------------ 
-9. Pretty print JSON
+### 9. Pretty print JSON
  
 SELECT jsonb_pretty(metadata)
 FROM patent_metadata
