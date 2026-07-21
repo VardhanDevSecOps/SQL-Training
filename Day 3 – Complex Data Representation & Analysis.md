@@ -21,12 +21,13 @@ Schema
 ```
 patents
 ```
+
 ### Main Tables
 ```
 patents_training
 
 patent_inventors
-```sql
+```
 ### Task 1 – Store All Inventors in One Field
 
 #### Purpose
