@@ -165,3 +165,53 @@ WHERE p.rn > 1;
 
 <img width="635" height="823" alt="image" src="https://github.com/user-attachments/assets/8634f9cc-3886-4154-9c54-81f0a593e504" />
 
+------------------------------------------------------------------------------------------------------------------------------------------
+### Step 4 - Retrieve Complete Citation Hierarchy
+
+* Given a publication number:
+ * `Retrieve all direct citations.`
+ * `Retrieve indirect citations recursively.`
+ * `Display the hierarchy across all levels.`
+ * `Show the depth (Level 1, Level 2, etc.).`
+
+```
+US0000046125
+ ├── cites → US0000061656
+ │            ├── cites → US0000033539
+ │            │            └── cites → US0000070241
+ │            │
+ │            └── cites → US0000088152
+ │
+ └── cites → US0000038363
+              └── cites → US0000038654
+```
+
+<img width="812" height="439" alt="image" src="https://github.com/user-attachments/assets/f3846611-51b8-476d-af10-558a3436ff92" />
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
