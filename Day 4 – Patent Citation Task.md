@@ -1,4 +1,4 @@
-
+![Screenshot 2026-07-27 at 6 16 37 PM](https://github.com/user-attachments/assets/0d28c1f1-c7b5-4bdf-9632-fa748ec51466)
 # Patent Citation Hierarchy Analysis
 
 ### Objective:
@@ -188,12 +188,130 @@ US0000046125
 
 <img width="812" height="439" alt="image" src="https://github.com/user-attachments/assets/f3846611-51b8-476d-af10-558a3436ff92" />
 
+#### A patent can cite another patent, forming a recursive chain of references that PostgreSQL can traverse using a Recursive CTE.
+
+The citation hierarchy illustrates this chain, with patents directly cited by the original patent appearing at Level 1 and patents referenced through subsequent citations appearing at progressively deeper levels.
+
+<img width="984" height="820" alt="Retrieve Complete Citation Hierarchy" src="https://github.com/user-attachments/assets/82b15a10-0e22-4d66-8f61-1414eca41513" />
+
+
+## Direct Citation vs Indirect Citation
+
+### Direct Citation
+
+A direct citation occurs when a patent directly references another patent.
+
+**Example:**
+
+```text
+US1005 → US1001
+```
+
+Here, `US1005` directly cites `US1001`.
+
+* Citing Patent: `US1005`
+* Cited Patent: `US1001`
+* Citation Depth: **Level 1**
+
+### Indirect Citation
+
+An indirect citation occurs when a cited patent is reached through one or more intermediate patents.
+
+**Example:**
+
+```text
+US1005 → US1001 → US9001 → US8001
+```
+
+From the perspective of `US1005`:
+
+* `US1001` → Direct citation → **Level 1**
+* `US9001` → Indirect citation → **Level 2**
+* `US8001` → Indirect citation → **Level 3**
+
+### Citation Hierarchy
+
+```text
+US0000046125
+   │
+   └── Level 1 → US0000061656
+                    │
+                    └── Level 2 → US0000033539
+                                     │
+                                     └── Level 3 → US0000038363
+```
+
+### Summary
+
+| Type              | Meaning                                    | Example                    |                   Depth |
+| ----------------- | ------------------------------------------ | -------------------------- |                   ----: |
+| Direct Citation   | Patent directly cites another patent       | `US0000046125 → US0000061656`                |     1 |
+| Indirect Citation | Patent is reached through another citation | `US0000046125 → US0000061656 → US0000038363` |    2+ |
+
+In PostgreSQL, a **recursive CTE (`WITH RECURSIVE`)** can be used to retrieve these citation relationships across multiple levels and calculate the citation depth.
+
 ------------------------------------------------------------------------------------------------------------------------------------------
+### Step 5 - Create Database Function
 
+* Create a PostgreSQL function.
+* Input:
+  * Publication number.
+* Output:
+  * Complete citation hierarchy.
+  * Citation depth for every record.
 
+Instead of repeatedly writing the same recursive query, encapsulate it in a reusable SQL function.
 
+#### Benefits:
 
+* Reusable – Can be called whenever needed
+* Easier to maintain – Logic is defined in one place
+* Cleaner SQL – Keeps queries concise and readable
+* Flexible – Can be used for a single patent or multiple patents
 
+```
+CREATE OR REPLACE FUNCTION get_patent_citation_paths(patent_no TEXT)
+RETURNS TABLE
+(
+    path TEXT,
+    depth INT
+)
+LANGUAGE SQL
+AS
+$$
+WITH RECURSIVE hierarchy AS
+(
+    SELECT
+        cited_publication_number,
+        1 AS depth,
+        patent_no || ' -> ' || cited_publication_number AS path
+    FROM patent_citations
+    WHERE citing_publication_number = patent_no
+
+    UNION ALL
+
+    SELECT
+        pc.cited_publication_number,
+        h.depth + 1,
+        h.path || ' -> ' || pc.cited_publication_number
+    FROM hierarchy h
+    JOIN patent_citations pc
+      ON pc.citing_publication_number = h.cited_publication_number
+    WHERE h.depth < 5
+)
+SELECT
+    path,
+    depth
+FROM hierarchy;
+$$;
+```
+
+------------------------------------------------------------------------------------------------------------------------------------------
+### Execute Function
+
+```
+SELECT * FROM get_patent_citation_hierarchy('US0000046125');
+```
 
 
 
