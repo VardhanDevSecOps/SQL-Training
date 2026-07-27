@@ -1,4 +1,3 @@
-![Screenshot 2026-07-27 at 6 16 37 PM](https://github.com/user-attachments/assets/0d28c1f1-c7b5-4bdf-9632-fa748ec51466)
 # Patent Citation Hierarchy Analysis
 
 ### Objective:
