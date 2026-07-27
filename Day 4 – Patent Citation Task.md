@@ -313,7 +313,39 @@ $$;
 SELECT * FROM get_patent_citation_hierarchy('US0000046125');
 ```
 
+<img width="1078" height="836" alt="image" src="https://github.com/user-attachments/assets/2c750df6-785a-49de-a790-561370802c36" />
 
+------------------------------------------------------------------------------------------------------------------------------------------
+### Step 6 - Use Function for Multiple Patents
+
+* Execute the function for multiple publication numbers.
+* Join the function output with the patent table.
+* Return citation information for multiple patents in a single query.
+
+With CROSS JOIN LATERAL, the function is executed once per patent.
+```
+SELECT
+    p.publication_number,
+    c.depth,
+    c.path
+FROM
+(
+    SELECT DISTINCT citing_publication_number AS publication_number
+    FROM citation.patent_citations
+    LIMIT 3
+) p
+CROSS JOIN LATERAL
+    get_patent_citation_hierarchy(p.publication_number) c
+ORDER BY
+    p.publication_number,
+    c.depth,
+    c.path
+LIMIT 150;
+```
+
+<img width="1256" height="817" alt="image" src="https://github.com/user-attachments/assets/de857f2d-dc4f-48f2-9846-7b26e50ddc78" />
+
+------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
