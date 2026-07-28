@@ -345,22 +345,163 @@ LIMIT 150;
 <img width="1256" height="817" alt="image" src="https://github.com/user-attachments/assets/de857f2d-dc4f-48f2-9846-7b26e50ddc78" />
 
 ------------------------------------------------------------------------------------------------------------------------------------------
+### Step 7: Create Citation Statistics View
 
+Create a SQL View containing:
 
+ * Publication Number
+ * Inventor Name
+ * Publication Date
+ * Direct Citation Count
+ * Total Citation Count (all recursive levels)
+ * Maximum Citation Depth
 
+### A View stores only the SQL definition and re-executes the underlying query whenever accessed, ensuring up-to-date results without extra storage but potentially causing slower performance for complex recursive queries.
+```
+CREATE OR REPLACE VIEW patent_citation_summary_demo AS
+SELECT
+    p.publication_number,
+    p.inventor_name,
+    p.publication_date,
 
+    -- Number of patents that directly cite this patent
+    (
+        SELECT COUNT(*)
+        FROM citation.patent_citations pc
+        WHERE pc.cited_publication_number = p.publication_number
+    ) AS direct_citation_count,
 
+    -- All citation paths up to depth 5
+    (
+        SELECT COUNT(*)
+        FROM get_patent_citation_hierarchy(p.publication_number)
+    ) AS total_citation_count,
 
+    -- Deepest citation level
+    (
+        SELECT MAX(depth)
+        FROM get_patent_citation_hierarchy(p.publication_number)
+    ) AS max_depth
 
+FROM (
+    SELECT *
+    FROM citation.patent_training
+    ORDER BY publication_number
+    LIMIT 5000
+) p;
+```
+<img width="1109" height="575" alt="image" src="https://github.com/user-attachments/assets/8f9eff4c-89d6-40d2-8f58-b360d0e41ee1" />
+<img width="1230" height="543" alt="image" src="https://github.com/user-attachments/assets/93267450-991e-4522-9965-915ec62613c2" />
 
+------------------------------------------------------------------------------------------------------------------------------------------
+### Step 8 - Create Materialized View
 
+* Create a Materialized View using the same query as the standard view.
+* Store the computed citation statistics physically.
 
+#### Unlike a regular view, a materialized view physically stores the query results on disk, enabling faster data retrieval
 
+<img width="652" height="148" alt="Screenshot 2026-07-28 at 1 07 33 PM" src="https://github.com/user-attachments/assets/22265e9c-b347-4945-98fa-8c38af94a9a3" />
+<img width="702" height="217" alt="image" src="https://github.com/user-attachments/assets/b2cc3dec-4cd0-4bfb-a8f5-51cd8c37b7b5" />
 
+### Create Unique Index
+```
+CREATE UNIQUE INDEX idx_mv_patent
+ON patent_citation_summary_mv (
+    citing_publication_number,
+    cited_publication_number
+);
+```
+------------------------------------------------------------------------------------------------------------------------------------------
+### Step 9 - Performance Comparison
 
+* Compare the following:
 
+ * Direct SQL Query
+ * Standard View
+ * Materialized View
+For each:
+ * Measure execution time.
+ * Run EXPLAIN ANALYZE.
+ * Compare query plans.
 
+### Direct Query
+```
+EXPLAIN ANALYZE
+SELECT
+    p.publication_number,
+    p.inventor_name,
+    p.publication_date,
+    (
+        SELECT COUNT(*)
+        FROM citation.patent_citations pc
+        WHERE pc.citing_publication_number = p.publication_number
+    ) AS direct_citation_count,
+    (
+        SELECT COUNT(*)
+        FROM get_patent_citation_hierarchy(p.publication_number)
+    ) AS total_citation_count,
+    (
+        SELECT MAX(depth)
+        FROM get_patent_citation_hierarchy(p.publication_number)
+    ) AS max_depth
+FROM citation.patent_training p
+LIMIT 100;
+```
+<img width="1665" height="812" alt="image" src="https://github.com/user-attachments/assets/4d525c55-a0fc-4393-8909-a89ebeba6217" />
 
+------------------------------------------------------------------------------------------------------------------------------------------
+### View
+```
+EXPLAIN ANALYZE
+SELECT *
+FROM patent_citation_summary_demo
+LIMIT 100;
+```
+<img width="1658" height="697" alt="image" src="https://github.com/user-attachments/assets/dac8f025-8fdb-4910-b598-b708cb08a33e" />
 
+------------------------------------------------------------------------------------------------------------------------------------------
+### Materialized View
+```
+EXPLAIN ANALYZE
+SELECT *
+FROM patent_citation_summary_mv
+LIMIT 100;
+```
+<img width="1393" height="262" alt="image" src="https://github.com/user-attachments/assets/ddb4e703-6f35-4999-9686-8d15a4cf64f8" />
 
+------------------------------------------------------------------------------------------------------------------------------------------
+### Step 10 - Test View vs Materialized View
+
+Insert new citation records.
+```
+INSERT INTO patent_citations
+(
+    citing_publication_number,
+    cited_publication_number
+)
+VALUES
+(
+    'US0000000001',
+    'US9999999999'
+);
+```
+<img width="535" height="254" alt="Screenshot 2026-07-28 at 1 28 05 PM" src="https://github.com/user-attachments/assets/6fc62341-7955-48ef-8e1b-c63123494cbe" />
+
+------------------------------------------------------------------------------------------------------------------------------------------
+### Observe how the standard view behaves.
+```
+SELECT *
+FROM patent_citation_summary_demo
+WHERE publication_number = 'US0000000001';
+```
+<img width="1221" height="164" alt="image" src="https://github.com/user-attachments/assets/2d593e9c-e064-4cca-8f90-7312a85a9c81" />
+
+------------------------------------------------------------------------------------------------------------------------------------------
+### Query the Materialized View
+```
+SELECT *
+FROM patent_citation_summary_mv
+WHERE publication_number = 'US0000000001';
+```
 
