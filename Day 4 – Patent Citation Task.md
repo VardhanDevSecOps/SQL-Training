@@ -17,7 +17,7 @@ If you want it phrased like a GitHub issue/task in bullet points:
 * Add **foreign key constraints** where applicable.
 * Create appropriate **indexes** to improve query performance.
 
-```psql
+```sql
 CREATE SCHEMA IF NOT EXISTS citation;
 
 CREATE TABLE citation.patent_training
@@ -28,7 +28,7 @@ SELECT *
 FROM patents.patents_training;
  
 ```
-```psql
+```sql
 CREATE TABLE citation.patent_citations (
   citing_publication_number TEXT NOT NULL,
   cited_publication_number TEXT NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE citation.patent_citations (
 ------------------------------------------------------------------------------------------------------------------------------------------
 ### Insert the data
 
-```psql
+```sql
 WITH patent_sequence AS
 (
     SELECT
@@ -79,7 +79,7 @@ WHERE p.seq_no <= 10000;
 
 • Recursive queries repeatedly search both columns, while indexes significantly improve lookup performance.
 
-```psql
+```sql
 CREATE INDEX idx_citing
 ON citation.patent_citations(citing_publication_number);
 
@@ -102,7 +102,7 @@ ON citation.patent_citations(cited_publication_number);
 To prevent invalid future citations, sort patents chronologically by publication date, assign each a row number, and permit citations only to patents with a smaller row number, ensuring every citation refers to an older patent.
 
 ### Create Ordered Patent List
-```psql
+```sql
 CREATE TEMP TABLE ordered_patents AS
 SELECT
     publication_number,
@@ -119,7 +119,7 @@ FROM patents.patents_training;
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 #### Create Index
-```psql
+```sql
 CREATE INDEX idx_ordered_patents_rn
 ON ordered_patents(rn);
 ```
@@ -133,7 +133,7 @@ For every patent that has at least one older patent, randomly choose 1–3 paten
 ### Why CROSS JOIN LATERAL?
 
 LATERAL lets each row of `p` independently select 1–5 random older patents and insert their citations, rather than reusing the same patents for every row.
-```psql
+```sql
 INSERT INTO patent_citations
 (
     citing_publication_number,
@@ -268,7 +268,7 @@ Instead of repeatedly writing the same recursive query, encapsulate it in a reus
 * Cleaner SQL – Keeps queries concise and readable
 * Flexible – Can be used for a single patent or multiple patents
 
-```psql
+```sql
 CREATE OR REPLACE FUNCTION get_patent_citation_paths(patent_no TEXT)
 RETURNS TABLE
 (
@@ -308,7 +308,7 @@ $$;
 ------------------------------------------------------------------------------------------------------------------------------------------
 ### Execute Function
 
-```psql
+```sql
 SELECT * FROM get_patent_citation_hierarchy('US0000046125');
 ```
 
@@ -322,7 +322,7 @@ SELECT * FROM get_patent_citation_hierarchy('US0000046125');
 * Return citation information for multiple patents in a single query.
 
 With CROSS JOIN LATERAL, the function is executed once per patent.
-```psql
+```sql
 SELECT
     p.publication_number,
     c.depth,
@@ -357,7 +357,7 @@ Create a SQL View containing:
  * Maximum Citation Depth
 
 ### A View stores only the SQL definition and re-executes the underlying query whenever accessed, ensuring up-to-date results without extra storage but potentially causing slower performance for complex recursive queries.
-```psql
+```sql
 CREATE OR REPLACE VIEW patent_citation_summary_demo AS
 SELECT
     p.publication_number,
@@ -405,7 +405,7 @@ FROM (
 <img width="702" height="217" alt="image" src="https://github.com/user-attachments/assets/b2cc3dec-4cd0-4bfb-a8f5-51cd8c37b7b5" />
 
 ### Create Unique Index
-```psql
+```sql
 CREATE UNIQUE INDEX idx_mv_patent
 ON patent_citation_summary_mv (
     citing_publication_number,
@@ -426,7 +426,7 @@ For each:
  * Compare query plans.
 
 ### Direct Query
-```psql
+```sql
 EXPLAIN ANALYZE
 SELECT
     p.publication_number,
@@ -452,7 +452,7 @@ LIMIT 100;
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 ### View
-```psql
+```sql
 EXPLAIN ANALYZE
 SELECT *
 FROM patent_citation_summary_demo
@@ -462,7 +462,7 @@ LIMIT 100;
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 ### Materialized View
-```psql
+```sql
 EXPLAIN ANALYZE
 SELECT *
 FROM patent_citation_summary_mv
@@ -474,7 +474,7 @@ LIMIT 100;
 ### Step 10 - Test View vs Materialized View
 
 Insert new citation records.
-```psql
+```sql
 INSERT INTO patent_citations
 (
     citing_publication_number,
@@ -490,7 +490,7 @@ VALUES
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 ### Observe how the standard view behaves.
-```psql
+```sql
 SELECT *
 FROM patent_citation_summary_demo
 WHERE publication_number = 'US0000000001';
@@ -499,7 +499,7 @@ WHERE publication_number = 'US0000000001';
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 ### Query the Materialized View
-```psql
+```sql
 SELECT *
 FROM patent_citation_summary_mv
 WHERE publication_number = 'US0000000001';
